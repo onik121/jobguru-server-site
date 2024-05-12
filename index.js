@@ -26,7 +26,7 @@ async function run() {
     try {
 
         const jobsCollection = client.db("jobguru").collection("jobs")
-        // const countriesCollection = client.db("tourismDB").collection("countries")
+        const bidsCollection = client.db("jobguru").collection("bids")
 
         // get all job data
         app.get('/jobs', async (req, res) => {
@@ -39,6 +39,13 @@ async function run() {
         app.get('/jobs/id/:id', async (req, res) => {
             const id = req.params.id;
             const result = await jobsCollection.findOne({_id: new ObjectId(id)})
+            res.send(result)
+        })
+
+        // post bids data
+        app.post('/bids', async (req, res) => {
+            const id = req.body;
+            const result = await bidsCollection.insertOne(id)
             res.send(result)
         })
 
