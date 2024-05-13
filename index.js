@@ -30,7 +30,6 @@ async function run() {
 
         // get all job data
         app.get('/jobs', async (req, res) => {
-            // console.log(req.query)
             const cursor = jobsCollection.find()
             const result = await cursor.toArray();
             res.send(result);
@@ -38,7 +37,6 @@ async function run() {
         // get single job data
         app.get('/jobs/id/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id)
             const result = await jobsCollection.findOne({ _id: new ObjectId(id) })
             res.send(result)
         })
@@ -64,6 +62,14 @@ async function run() {
         app.post('/jobs', async (req, res) => {
             const id = req.body;
             const result = await jobsCollection.insertOne(id);
+            res.send(result)
+        })
+
+        // delete job data
+        app.delete('/jobs/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await jobsCollection.deleteOne(query);
             res.send(result)
         })
 
