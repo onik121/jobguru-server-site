@@ -38,9 +38,20 @@ async function run() {
         // get single job data
         app.get('/jobs/id/:id', async (req, res) => {
             const id = req.params.id;
-            const result = await jobsCollection.findOne({_id: new ObjectId(id)})
+            console.log(id)
+            const result = await jobsCollection.findOne({ _id: new ObjectId(id) })
             res.send(result)
         })
+        // get all jobs posted by a specific user
+        app.get('/jobs/email/:email', async (req, res) => {
+            const id = req.params.email;
+            const cursor = jobsCollection.find({ buyer_email: id });
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+
+
 
         // post bids data
         app.post('/bids', async (req, res) => {
@@ -50,8 +61,8 @@ async function run() {
         })
 
         // post add data 
-        app.post('/jobs', async(req,res) => {
-            const id =req.body;
+        app.post('/jobs', async (req, res) => {
+            const id = req.body;
             const result = await jobsCollection.insertOne(id);
             res.send(result)
         })
