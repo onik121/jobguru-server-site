@@ -73,6 +73,26 @@ async function run() {
             res.send(result)
         })
 
+        // Update
+        app.patch('/jobs/:id', async (req, res) => {
+            const id = req.params.id;
+            const job = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateCoffe = {
+                $set: {
+                    job_title: job.title,
+                    job_banner: job.banner,
+                    max_salary: job.maxsalary,
+                    min_salary: job.minsalary,
+                    deadline: job.deadline,
+                    description: job.description,
+                },
+            };
+            const result = await jobsCollection.updateOne(filter, updateCoffe, options);
+            res.send(result)
+        })
+
         // app.get('/id', async (req, res) => {
         //     const id = req.query.title;
         //     console.log(id)
