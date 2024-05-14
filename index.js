@@ -48,7 +48,13 @@ async function run() {
             res.send(result);
         });
 
-
+        // get all bids by a specific user
+        app.get('/my-bids/:email', async (req, res) => {
+            const id = req.params.email;
+            const cursor = bidsCollection.find({ email: id });
+            const result = await cursor.toArray();
+            res.send(result);
+        });
 
 
         // post bids data
@@ -65,6 +71,8 @@ async function run() {
             res.send(result)
         })
 
+
+
         // delete job data
         app.delete('/jobs/:id', async (req, res) => {
             const id = req.params.id;
@@ -72,6 +80,9 @@ async function run() {
             const result = await jobsCollection.deleteOne(query);
             res.send(result)
         })
+
+
+
 
         // Update
         app.patch('/jobs/:id', async (req, res) => {
