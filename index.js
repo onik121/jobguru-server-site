@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 // midleware
 app.use(cors({
     origin: [
-        'http://localhost:5173'
+        'http://localhost:5173', 'https://imaginative-profiterole-39d4eb.netlify.app'
     ],
     credentials: true,
 }));
@@ -89,8 +89,15 @@ async function run() {
         })
 
         // get all jobs posted by a specific user
-        app.get('/jobs/email', async (req, res) => {
+        app.get('/jobs/email', logger, verifyToken, async (req, res) => {
             const id = req.query.email;
+            if (req.query.email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden acess' })
+            }
+            let query = {};
+            if (req.query?.email) {
+                query = { email: req.query.email }
+            }
             const cursor = jobsCollection.find({ buyer_email: id });
             const result = await cursor.toArray();
             res.send(result);
