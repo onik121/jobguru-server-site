@@ -1,14 +1,22 @@
+require("dotenv").config();
 const express = require('express');
 const cors = require('cors');
-require("dotenv").config();
+const jwt = require('jsonwebtoken')
+const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 5000;
 
 
 // midleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:5173'
+    ],
+    credentials: true,
+}));
 app.use(express.json())
+app.use(cookieParser());
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@jahid12.81vfswo.mongodb.net/?retryWrites=true&w=majority&appName=jahid12`;
@@ -22,11 +30,50 @@ const client = new MongoClient(uri, {
     }
 });
 
+const logger = (req, res, next) => {
+    next();
+}
+
+const verifyToken = (req, res, next) => {
+    const token = req.cookies?.token;
+    if (!token) {
+        return res.status(401).send({ message: 'unauthorized access' })
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'unauthorized access' })
+        }
+        req.user = decoded;
+        next();
+    })
+}
+
+const cookeOption = {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+    secure: process.env.NODE_ENV === 'production' ? true : false,
+    // secure: true,
+}
+
 async function run() {
     try {
 
         const jobsCollection = client.db("jobguru").collection("jobs")
         const bidsCollection = client.db("jobguru").collection("bids")
+
+         // jwt related api
+         app.post('/jwt', async (req, res) => {
+            const user = req.body;
+            // console.log('user for token', user)
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+            res.cookie('token', token, cookeOption ).send({ success: true });
+        });
+
+        app.post('/logout', async (req, res) => {
+            res.clearCookie('token', { ...cookeOption, maxAge: 0 }).send({ success: true });
+        });
+
+
 
         // get all job data
         app.get('/jobs', async (req, res) => {
@@ -40,19 +87,25 @@ async function run() {
             const result = await jobsCollection.findOne({ _id: new ObjectId(id) })
             res.send(result)
         })
+
         // get all jobs posted by a specific user
-        app.get('/jobs/email/:email', async (req, res) => {
-            const id = req.params.email;
+        app.get('/jobs/email', async (req, res) => {
+            const id = req.query.email;
             const cursor = jobsCollection.find({ buyer_email: id });
             const result = await cursor.toArray();
             res.send(result);
         });
 
         // get all bids by a specific user
-        app.get('/my-bids/:email', async (req, res) => {
-            const id = req.params.email;
-            const cursor = bidsCollection.find({ email: id });
-            const result = await cursor.toArray();
+        app.get('/my-bids', logger, verifyToken, async (req, res) => {
+            if (req.query.email !== req.user.email) {
+                return res.status(403).send({ message: 'forbidden acess' })
+            }
+            let query = {};
+            if (req.query?.email) {
+                query = { email: req.query.email }
+            }
+            const result = await bidsCollection.find(query).toArray();
             res.send(result);
         });
 
@@ -83,7 +136,6 @@ async function run() {
 
 
 
-
         // Update
         app.patch('/jobs/:id', async (req, res) => {
             const id = req.params.id;
@@ -103,14 +155,6 @@ async function run() {
             const result = await jobsCollection.updateOne(filter, updateCoffe, options);
             res.send(result)
         })
-
-        // app.get('/id', async (req, res) => {
-        //     const id = req.query.title;
-        //     console.log(id)
-        //     const query = { job_category: id }
-        //     const result = await jobsCollection.find(query).toArray();
-        //     res.send(result);
-        // })
 
     }
     finally {
