@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 // midleware
 app.use(cors({
     origin: [
-        'http://localhost:5173', 'https://imaginative-profiterole-39d4eb.netlify.app'
+        'http://localhost:5173', 'https://jobguru.netlify.app', 'https://stellular-kelpie-58f967.netlify.app'
     ],
     credentials: true,
 }));
@@ -51,8 +51,7 @@ const verifyToken = (req, res, next) => {
 const cookeOption = {
     httpOnly: true,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-    secure: process.env.NODE_ENV === 'production' ? true : false,
-    // secure: true,
+    secure: process.env.NODE_ENV === 'production' ? true : false,   
 }
 
 async function run() {
@@ -77,10 +76,20 @@ async function run() {
 
         // get all job data
         app.get('/jobs', async (req, res) => {
-            const cursor = jobsCollection.find()
-            const result = await cursor.toArray();
+            const filter = req.query.search;
+            const budget = req.query.budget;
+            const query = {};
+            if (filter) {
+                query.job_title = { $regex: filter, $options: 'i' };
+            }
+            if (budget) {
+                const [minBudget, maxBudget] = budget.split(' ').map(Number);
+                query.min_salary = { $gte: minBudget };
+                query.max_salary = { $lte: maxBudget };
+            }
+            const result = await jobsCollection.find(query).toArray();
             res.send(result);
-        })
+        });
         // get single job data
         app.get('/jobs/id/:id', async (req, res) => {
             const id = req.params.id;
